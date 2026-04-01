@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rendelés – Kincsem Faműhely</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="logo">Kincsem Faműhely</a>
+    </div>
+  </header>
+
+  <main class="container checkout-page">
+
+    <h1>Rendelés</h1>
+    <p class="checkout-subtitle">Kérlek add meg az adataidat a fizetéshez.</p>
+
+    <form id="checkout-form" class="checkout-form">
+
+      <h2>Vásárlói adatok</h2>
+
+      <label>
+        Név
+        <input type="text" id="name" required>
+      </label>
+
+      <label>
+        Email cím
+        <input type="email" id="email" required>
+      </label>
+
+      <h2>Szállítási cím</h2>
+
+      <label>
+        Utca, házszám
+        <input type="text" id="street" required>
+      </label>
+
+      <label>
+        Város
+        <input type="text" id="city" required>
+      </label>
+
+      <label>
+        Irányítószám
+        <input type="text" id="zip" required>
+      </label>
+
+      <h2>Szállítási mód</h2>
+
+      <div class="shipping-options">
+
+        <label class="shipping-option">
+          <input type="radio" name="shipping" value="pickup" required>
+          <span>Személyes átvétel – 0 Ft</span>
+        </label>
+
+        <label class="shipping-option">
+          <input type="radio" name="shipping" value="gls">
+          <span>GLS házhozszállítás – 1990 Ft</span>
+        </label>
+
+        <label class="shipping-option">
+          <input type="radio" name="shipping" value="mpl">
+          <span>MPL házhozszállítás – 1790 Ft</span>
+        </label>
+
+        <label class="shipping-option">
+          <input type="radio" name="shipping" value="foxpost">
+          <span>Foxpost automata – 990 Ft</span>
+        </label>
+
+      </div>
+
+      <h2>Megjegyzés (opcionális)</h2>
+      <textarea id="notes" placeholder="Pl. ajándékba lesz, kérem szépen csomagolni"></textarea>
+
+      <button type="submit" class="buy-button">Tovább a fizetéshez</button>
+
+    </form>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2024 Kincsem Faműhely – Minden jog fenntartva</p>
+    </div>
+  </footer>
+
+  <script src="checkout.js"></script>
+</body>
+</html>
