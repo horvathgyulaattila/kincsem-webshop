@@ -1,55 +1,55 @@
 // api/stripe-webhook.js
+// Netlify Function – Stripe webhook feldolgozása
 
 import Stripe from "stripe"
-import { buffer } from "micro" // Vercel esetén kell a raw body-hoz
 import { getProductById, decreaseStock } from "../lib/products.js"
 import { getInvoiceItem } from "../lib/shipping.js"
 import { sendInvoice } from "../lib/szamlazz.js"
 import { sendCustomerToMailerLite, sendAdminNotification } from "../lib/mailerlite.js"
 
-// Stripe inicializálás
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
-// A Stripe webhookhoz kötelező kikapcsolni a bodyParser-t (Vercel)
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
-
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).send("Csak POST metódus engedélyezett.")
+export async function handler(event) {
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: "Csak POST metódus engedélyezett." })
+    }
   }
 
-  let event
+  let stripeEvent
 
   try {
-    // 1) RAW BODY beolvasása
-    const rawBody = await buffer(req)
-    const signature = req.headers["stripe-signature"]
+    // 1) Raw body és aláírás ellenőrzése
+    // Netlify-on az event.body string (nem Buffer), de a Stripe SDK ezt kezeli
+    const signature = event.headers["stripe-signature"]
 
-    // 2) Stripe aláírás ellenőrzése
-    event = stripe.webhooks.constructEvent(
-      rawBody,
+    stripeEvent = stripe.webhooks.constructEvent(
+      event.body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET
     )
   } catch (err) {
     console.error("Stripe webhook signature error:", err)
-    return res.status(400).send("Invalid signature")
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Invalid signature" })
+    }
   }
 
-  // 3) Csak a checkout.session.completed esemény érdekel
-  if (event.type !== "checkout.session.completed") {
-    return res.status(200).send("Ignored")
+  // 2) Csak a checkout.session.completed esemény érdekel
+  if (stripeEvent.type !== "checkout.session.completed") {
+    return {
+      statusCode: 200,
+      body: "Ignored"
+    }
   }
 
-  const session = event.data.object
+  const session = stripeEvent.data.object
   const metadata = session.metadata || {}
 
   try {
-    // 4) Metadata kinyerése
+    // 3) Metadata kinyerése
     const productId = metadata.productId
     const shippingMethod = metadata.shippingMethod
 
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
 
     const notes = metadata.notes || ""
 
-    // 5) Termék lekérése Airtable-ből
+    // 4) Termék lekérése Airtable-ből
     const product = await getProductById(productId)
 
     if (!product) {
@@ -73,10 +73,10 @@ export default async function handler(req, res) {
       await sendAdminNotification(
         `HIBA: A termék nem található a webhook során: ${productId}`
       )
-      return res.status(200).send("ok")
+      return { statusCode: 200, body: "ok" }
     }
 
-    // 6) Számla generálása Számlázz.hu-n
+    // 5) Számla generálása Számlázz.hu-n
     const invoiceItems = [
       {
         name: product.name,
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
 
     const invoiceNumber = invoiceResponse?.invoiceNumber || "N/A"
 
-    // 7) MailerLite értesítés (vásárló)
+    // 6) MailerLite értesítés (vásárló)
     await sendCustomerToMailerLite({
       email: customer.email,
       name: customer.name,
@@ -104,10 +104,10 @@ export default async function handler(req, res) {
       invoiceNumber,
     })
 
-    // 8) Készlet csökkentése Airtable-ben
+    // 7) Készlet csökkentése Airtable-ben
     await decreaseStock(productId)
 
-    // 9) Admin értesítés (kötelező)
+    // 8) Admin értesítés
     await sendAdminNotification(
       `Új rendelés érkezett!\n\n` +
         `Termék: ${product.name}\n` +
@@ -117,11 +117,11 @@ export default async function handler(req, res) {
         `Számla: ${invoiceNumber}`
     )
 
-    // 10) Stripe felé válasz
-    return res.status(200).send("ok")
+    return { statusCode: 200, body: "ok" }
+
   } catch (err) {
     console.error("Webhook feldolgozási hiba:", err)
     // Stripe felé akkor is 200-at küldünk, hogy ne próbálja újra
-    return res.status(200).send("ok")
+    return { statusCode: 200, body: "ok" }
   }
 }
