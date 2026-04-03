@@ -97,7 +97,7 @@ export async function handler(event) {
         product_data: {
           name: product.name,
         },
-        unit_amount: product.price,
+        unit_amount: product.price * 100,
       },
       quantity: 1
     }
