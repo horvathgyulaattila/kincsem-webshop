@@ -6,7 +6,13 @@ import {
   getShippingMetadata
 } from "../lib/shipping.js"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+function getStripeClient(mode) {
+  const key = mode === "live"
+    ? process.env.STRIPE_SECRET_KEY_LIVE
+    : process.env.STRIPE_SECRET_KEY_TEST
+  if (!key) throw new Error(`Hiányzik a Stripe kulcs (${mode} mód).`)
+  return new Stripe(key)
+}
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") {
@@ -77,7 +83,12 @@ export async function handler(event) {
     }
 
     // -----------------------------
-    // 3) SZÁLLÍTÁSI MÓD
+    // 3) STRIPE KLIENS (teszt vagy éles mód a termék alapján)
+    // -----------------------------
+    const stripe = getStripeClient(product.stripeMode)
+
+    // -----------------------------
+    // 4) SZÁLLÍTÁSI MÓD
     // -----------------------------
     const shipping = getShippingMethod(shippingMethod)
 
