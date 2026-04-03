@@ -92,7 +92,13 @@ export async function handler(event) {
     // 4) STRIPE LINE ITEMEK
     // -----------------------------
     const productLineItem = {
-      price: product.stripePriceId,
+      price_data: {
+        currency: "huf",
+        product_data: {
+          name: product.name,
+        },
+        unit_amount: product.price,
+      },
       quantity: 1
     }
 
